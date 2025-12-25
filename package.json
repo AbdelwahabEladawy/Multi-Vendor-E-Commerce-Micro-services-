@@ -2,11 +2,19 @@
   "name": "@multi-vendor/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "dev": " npx nx run-many --target=serve --all"
+  },
   "private": true,
   "dependencies": {
-    "axios": "^1.6.0",
-    "express": "^4.21.2"
+    "axios": "^1.13.2",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "express-http-proxy": "^2.1.2",
+    "express-rate-limit": "^8.2.1",
+    "morgan": "^1.10.1",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@nx/express": "22.3.3",
@@ -20,8 +28,13 @@
     "@swc-node/register": "~1.9.1",
     "@swc/core": "~1.5.7",
     "@swc/helpers": "~0.5.11",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
     "@types/express": "^4.17.21",
+    "@types/express-http-proxy": "^1.6.7",
+    "@types/morgan": "^1.9.10",
     "@types/node": "20.19.9",
+    "@types/swagger-ui-express": "^4.1.8",
     "nx": "22.3.3",
     "react-refresh": "^0.10.0",
     "tslib": "^2.3.0",
@@ -29,6 +42,8 @@
     "webpack-cli": "^5.1.4"
   },
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "api-gateway",
+    "api-gateway-e2e"
   ]
 }
