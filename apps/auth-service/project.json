@@ -4,6 +4,32 @@
   "sourceRoot": "apps/auth-service/src",
   "projectType": "application",
   "targets": {
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": [
+        "{projectRoot}/dist"
+      ],
+      "defaultConfiguration": "development",
+      "options": {
+        "target": "node",
+        "compiler": "tsc",
+        "main": "multi-vendor/apps/auth-service/src/main.ts",
+        "tsConfig": "multi-vendor/apps/auth-service/tsconfig.app.json",
+        "outputPath": "multi-vendor/apps/auth-service/dist",
+        "webpackConfig": "multi-vendor/apps/auth-service/webpack.config.js",
+        "sourceMap": true
+      },
+      "configurations": {
+        "development": {
+          "optimization": false,
+          "sourceMap": true
+        },
+        "production": {
+          "optimization": true,
+          "sourceMap": false
+        }
+      }
+    },
     "prune-lockfile": {
       "dependsOn": [
         "build"
@@ -46,15 +72,15 @@
         "build"
       ],
       "options": {
-        "buildTarget": "@multi-vendor/auth-service:build",
+        "buildTarget": "build",
         "runBuildTargetDependencies": false
       },
       "configurations": {
         "development": {
-          "buildTarget": "@multi-vendor/auth-service:build:development"
+          "buildTarget": "build:development"
         },
         "production": {
-          "buildTarget": "@multi-vendor/auth-service:build:production"
+          "buildTarget": "build:production"
         }
       }
     }
