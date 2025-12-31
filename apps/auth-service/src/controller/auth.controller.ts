@@ -13,8 +13,12 @@ export const userRegistration = async (req: Request, res: Response, next: NextFu
             return next(new ValidationError("Validation failed", "Email already in use"));
         }
 
-        await checkOtpRestrictions(email, next);
-        await trackOtpRequest(email, next);
+        const canProceed = await checkOtpRestrictions(email, next);
+        if (!canProceed) return;
+
+        const canTrack = await trackOtpRequest(email, next);
+        if (!canTrack) return;
+
         await sendOtp(email, name, "user-activation-email");
         res.status(200).json({ message: "OTP sent to email successfully please check your inbox and verify your account" });
 

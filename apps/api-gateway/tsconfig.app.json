@@ -1,16 +1,17 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "dist",
+    "outDir": "out-tsc/@multi-vendor/api-gateway",
     "types": [
       "node",
       "express"
     ],
-    "rootDir": "src",
-    "tsBuildInfoFile": "dist/tsconfig.app.tsbuildinfo"
+    "rootDir": "../../",
+    "tsBuildInfoFile": "out-tsc/@multi-vendor/api-gateway/tsconfig.app.tsbuildinfo"
   },
   "include": [
-    "src/**/*.ts"
+    "src/**/*.ts",
+    "../../packages/**/*.ts"
   ],
   "exclude": []
 }

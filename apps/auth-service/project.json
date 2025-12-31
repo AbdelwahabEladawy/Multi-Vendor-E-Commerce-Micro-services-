@@ -7,81 +7,27 @@
     "build": {
       "executor": "@nx/webpack:webpack",
       "outputs": [
-        "{projectRoot}/dist"
+        "{options.outputPath}"
       ],
-      "defaultConfiguration": "development",
       "options": {
         "target": "node",
         "compiler": "tsc",
-        "main": "multi-vendor/apps/auth-service/src/main.ts",
-        "tsConfig": "multi-vendor/apps/auth-service/tsconfig.app.json",
-        "outputPath": "multi-vendor/apps/auth-service/dist",
-        "webpackConfig": "multi-vendor/apps/auth-service/webpack.config.js",
-        "sourceMap": true
-      },
-      "configurations": {
-        "development": {
-          "optimization": false,
-          "sourceMap": true
-        },
-        "production": {
-          "optimization": true,
-          "sourceMap": false
-        }
+        "outputPath": "dist/apps/auth-service",
+        "main": "apps/auth-service/src/main.ts",
+        "tsConfig": "apps/auth-service/tsconfig.app.json",
+        "assets": [],
+        "isolatedConfig": true,
+        "webpackConfig": "apps/auth-service/webpack.config.js"
       }
-    },
-    "prune-lockfile": {
-      "dependsOn": [
-        "build"
-      ],
-      "cache": true,
-      "executor": "@nx/js:prune-lockfile",
-      "outputs": [
-        "{workspaceRoot}/apps/auth-service/dist/package.json",
-        "{workspaceRoot}/apps/auth-service/dist/package-lock.json"
-      ],
-      "options": {
-        "buildTarget": "build"
-      }
-    },
-    "copy-workspace-modules": {
-      "dependsOn": [
-        "build"
-      ],
-      "cache": true,
-      "outputs": [
-        "{workspaceRoot}/apps/auth-service/dist/workspace_modules"
-      ],
-      "executor": "@nx/js:copy-workspace-modules",
-      "options": {
-        "buildTarget": "build"
-      }
-    },
-    "prune": {
-      "dependsOn": [
-        "prune-lockfile",
-        "copy-workspace-modules"
-      ],
-      "executor": "nx:noop"
     },
     "serve": {
-      "continuous": true,
       "executor": "@nx/js:node",
-      "defaultConfiguration": "development",
       "dependsOn": [
         "build"
       ],
       "options": {
-        "buildTarget": "build",
-        "runBuildTargetDependencies": false
-      },
-      "configurations": {
-        "development": {
-          "buildTarget": "build:development"
-        },
-        "production": {
-          "buildTarget": "build:production"
-        }
+        "buildTarget": "@multi-vendor/auth-service:build",
+        "inspect": false
       }
     }
   },

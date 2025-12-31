@@ -26,7 +26,8 @@ module.exports = {
   },
 
   output: {
-    path: join(__dirname, 'dist'),
+    path: join(__dirname, '../../dist/apps/auth-service'),
+    filename: 'main.js',
     clean: true,
     ...(process.env.NODE_ENV !== 'production' && {
       devtoolModuleFilenameTemplate: '[absolute-resource-path]',

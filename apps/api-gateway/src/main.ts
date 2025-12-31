@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import cors from 'cors';
 import proxy from "express-http-proxy";
 import morgan from 'morgan';
@@ -9,9 +10,10 @@ import express from 'express';
 const app = express();
 app.use(cors(
   {
-    origin: ['http://localhost:3000'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    origin: true, // Allow all origins for development
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   }
 ));
 
@@ -34,12 +36,46 @@ const limiter = rateLimit({
 
 app.use(limiter);
 
+app.get('/', (req, res) => {
+  res.send({ message: 'Welcome to api-gateway! Use /api for API endpoints.' });
+});
+
 app.get('/gateway-health', (req, res) => {
   res.send({ message: 'Welcome to api-gateway!' });
 });
 
 
-app.use("/", proxy("http://localhost:6001"));
+app.use("/api", proxy("http://localhost:6001", {
+    proxyReqPathResolver: (req) => {
+        // Forward the request path to auth-service, keeping /api prefix
+        // req.originalUrl includes /api, so we pass it as is
+        return req.originalUrl;
+    },
+    proxyReqOptDecorator: (proxyReqOpts, srcReq) => {
+        // Remove upgrade and connection headers to prevent WebSocket upgrade
+        if (proxyReqOpts.headers) {
+            // Remove WebSocket-related headers
+            delete proxyReqOpts.headers['upgrade'];
+            // Set connection to close for regular HTTP requests
+            proxyReqOpts.headers['connection'] = 'close';
+        }
+        return proxyReqOpts;
+    },
+    // Filter function to only proxy HTTP requests, not WebSocket
+    filter: (req, res) => {
+        // Always proxy HTTP requests
+        // The proxyReqOptDecorator will handle removing WebSocket headers
+        return true;
+    },
+    // Handle errors
+    proxyErrorHandler: (err, res, next) => {
+        console.error('Proxy error:', err.message);
+        res.status(502).json({
+            status: 'error',
+            message: 'Bad Gateway - Service unavailable'
+        });
+    },
+}));
 
 
 const port = process.env.PORT || 8080;

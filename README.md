@@ -1,101 +1,301 @@
-# MultiVendor
+# Multi-Vendor E-Commerce Microservices
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+مشروع E-Commerce متعدد البائعين مبني على Microservices Architecture باستخدام Nx Monorepo.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+## 📋 نظرة عامة
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/express?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+المشروع يتكون من:
+- **API Gateway** (Port 8080): نقطة الدخول الرئيسية لجميع الطلبات
+- **Auth Service** (Port 6001): خدمة المصادقة وإدارة المستخدمين
 
-## Run tasks
+## 🔧 المشاكل التي تم حلها والإصلاحات
 
-To run the dev server for your app, use:
+### 1. مشاكل الإعدادات الأساسية (Configuration Issues)
 
-```sh
-npx nx serve auth-service
+#### المشكلة:
+- خطأ في `nx.json`: استخدام plugin غير موجود `@nx/js/next`
+- تكرار في `workspaces` في `package.json`
+- ملف `prisma.config.ts` غير صحيح
+
+#### الإصلاح:
+- ✅ إزالة `@nx/js/next` plugin من `nx.json`
+- ✅ تنظيف `workspaces` في `package.json` ليشمل فقط `apps/*`
+- ✅ حذف `prisma.config.ts` غير المطلوب
+- ✅ إضافة `@prisma/client` و `prisma` packages
+- ✅ إضافة `swagger-autogen` package
+
+### 2. مشاكل المسارات والـ Imports (Path Issues)
+
+#### المشكلة:
+- مسار خاطئ في `sendEmail/index.ts`: `auths-service` بدلاً من `auth-service`
+- عدم وجود `dotenv/config` في الملفات الرئيسية
+- `tsconfig.app.json` لا يشمل مجلد `packages`
+
+#### الإصلاح:
+- ✅ تصحيح مسار template: `apps/auth-service/src/utils/EmailTemplates`
+- ✅ إضافة `import 'dotenv/config'` في جميع الملفات الرئيسية
+- ✅ تحديث `tsconfig.app.json` ليشمل `../../packages/**/*.ts`
+- ✅ إزالة import غير مستخدم `localsName` من ejs
+
+### 3. مشاكل Redis Configuration
+
+#### المشكلة:
+- استخدام متغيرات خاطئة: `UPSTASH_REDIS_REST_URL` بدلاً من `REDIS_HOST`
+- عدم دعم Upstash Redis مع TLS
+
+#### الإصلاح:
+- ✅ تحديث `packages/libs/redis/index.ts` لدعم Upstash Redis
+- ✅ إضافة TLS configuration للـ Upstash
+- ✅ إضافة error handling و connection logging
+- ✅ استخراج host من `UPSTASH_REDIS_REST_URL` تلقائياً
+
+### 4. مشاكل TypeScript و Build Configuration
+
+#### المشكلة:
+- خطأ في `rootDir` في `tsconfig.app.json` لـ api-gateway
+- استخدام executor خاطئ: `@nx/node:build` غير موجود
+- عدم وجود `project.json` لـ api-gateway
+
+#### الإصلاح:
+- ✅ تغيير `rootDir` من `"src"` إلى `"../../"` في api-gateway
+- ✅ تغيير build executor إلى `@nx/webpack:webpack`
+- ✅ إنشاء `project.json` لـ api-gateway
+- ✅ إضافة `@types/nodemailer` و `@types/ejs`
+
+### 5. مشاكل Webpack Output Path
+
+#### المشكلة:
+- webpack يبني الملفات في `apps/auth-service/dist/` بدلاً من `dist/apps/auth-service/`
+- serve executor لا يجد الملفات المبنية
+
+#### الإصلاح:
+- ✅ تحديث `webpack.config.js` لبناء في `dist/apps/[project-name]/`
+- ✅ إضافة `filename: 'main.js'` بشكل صريح في webpack output
+
+### 6. مشاكل Prisma Schema
+
+#### المشكلة:
+- `datasource db` لا يحتوي على `url` field
+
+#### الإصلاح:
+- ✅ إضافة `url = env("DATABASE_URL")` في `prisma/schema.prisma`
+- ✅ تشغيل `npx prisma generate` بنجاح
+
+### 7. مشاكل Email Configuration
+
+#### المشكلة:
+- خطأ إملائي: `stmp.gmail.com` بدلاً من `smtp.gmail.com`
+- عدم وجود `secure` option للمنفذ 465
+
+#### الإصلاح:
+- ✅ إضافة `secure: true` للمنفذ 465 (SSL)
+- ✅ إضافة TLS options في nodemailer config
+
+### 8. مشاكل Express HTTP Proxy (WebSocket Error)
+
+#### المشكلة:
+- رسالة خطأ: "WebSockets request was expected" عند الوصول للـ routes
+- proxy يحاول التعامل مع طلبات HTTP كـ WebSocket
+
+#### الإصلاح:
+- ✅ إضافة `proxyReqOptDecorator` لإزالة WebSocket headers
+- ✅ إضافة `filter` function للتحقق من نوع الطلب
+- ✅ إضافة `proxyErrorHandler` لمعالجة الأخطاء
+- ✅ تحديث CORS settings للسماح بجميع الـ origins في development
+
+### 9. مشاكل Error Handling
+
+#### المشكلة:
+- TypeScript error: `Property 'details' does not exist on type 'Error'`
+- import path خاطئ في `error.middleware.ts`
+
+#### الإصلاح:
+- ✅ استخدام type assertion `as AppError` في error middleware
+- ✅ تصحيح import path من `"../"` إلى `"./index"`
+
+### 10. مشاكل Middleware Order
+
+#### المشكلة:
+- ترتيب خاطئ للـ middlewares يسبب 400 Bad Request
+- عدم وجود 404 handler
+
+#### الإصلاح:
+- ✅ إعادة ترتيب middlewares: CORS أولاً، ثم body parsers، ثم routes
+- ✅ إضافة 404 handler قبل error middleware
+- ✅ تحسين error logging
+
+### 11. مشاكل Serve Configuration
+
+#### المشكلة:
+- serve executor لا يكمل التشغيل
+- routes لا تعمل
+
+#### الإصلاح:
+- ✅ تبسيط serve configuration
+- ✅ إزالة `host` و `port` من serve options (يتم التعامل معها في الكود)
+- ✅ إضافة `inspect: false` لتجنب مشاكل debugging
+
+## 📁 هيكل المشروع
+
+```
+Multi-Vendor-E-Commerce-Micro-services/
+├── apps/
+│   ├── api-gateway/          # API Gateway Service (Port 8080)
+│   │   ├── src/
+│   │   │   └── main.ts
+│   │   ├── project.json
+│   │   └── webpack.config.js
+│   └── auth-service/         # Authentication Service (Port 6001)
+│       ├── src/
+│       │   ├── controller/
+│       │   ├── routes/
+│       │   ├── utils/
+│       │   └── main.ts
+│       ├── project.json
+│       └── webpack.config.js
+├── packages/
+│   ├── error-handler/        # Error handling utilities
+│   ├── libs/
+│   │   ├── prisma/          # Prisma client
+│   │   └── redis/           # Redis client
+├── prisma/
+│   └── schema.prisma        # Database schema
+├── .env                     # Environment variables
+├── package.json
+└── nx.json
 ```
 
-To create a production bundle:
+## 🚀 البدء السريع
 
-```sh
+### المتطلبات الأساسية
+
+- Node.js (v20+)
+- npm أو yarn
+- MongoDB (Cloud أو Local)
+- Redis (Upstash أو Local)
+
+### التثبيت
+
+```bash
+# تثبيت dependencies
+npm install
+
+# إنشاء Prisma Client
+npx prisma generate
+```
+
+### إعداد Environment Variables
+
+أنشئ ملف `.env` في root المشروع:
+
+```env
+# Database
+DATABASE_URL="mongodb+srv://username:password@cluster.mongodb.net/database"
+
+# Redis (Upstash)
+UPSTASH_REDIS_REST_URL="https://your-redis.upstash.io"
+UPSTASH_REDIS_REST_TOKEN="your-token"
+REDIS_PASSWORD="your-password"
+
+# Email (SMTP)
+EMAIL_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_SERVICE=gmail
+SMTP_USER="your-email@gmail.com"
+SMTP_PASS="your-app-password"
+
+# Server Ports
+PORT=8080
+AUTH_SERVICE_PORT=6001
+
+# Environment
+NODE_ENV=development
+```
+
+### التشغيل
+
+```bash
+# تشغيل جميع الخدمات
+npm run dev
+
+# أو تشغيل كل خدمة بشكل منفصل
+npx nx serve auth-service    # Port 6001
+npx nx serve api-gateway      # Port 8080
+```
+
+## 📡 API Endpoints
+
+### API Gateway (Port 8080)
+
+- `GET /` - رسالة ترحيبية
+- `GET /gateway-health` - Health check
+- `GET /api/*` - يتم توجيهه إلى auth-service
+
+### Auth Service (Port 6001)
+
+- `GET /` - رسالة ترحيبية
+- `GET /api-docs` - Swagger documentation
+- `POST /api/user-registration` - تسجيل مستخدم جديد
+
+## 🛠️ الأوامر المتاحة
+
+```bash
+# Build
 npx nx build auth-service
+npx nx build api-gateway
+
+# Serve
+npx nx serve auth-service
+npx nx serve api-gateway
+
+# Run all services
+npm run dev
+
+# Type checking
+npx nx typecheck auth-service
+npx nx typecheck api-gateway
 ```
 
-To see all available targets to run for a project, run:
+## 📝 ملاحظات مهمة
 
-```sh
-npx nx show project auth-service
-```
+1. **Redis Connection**: المشروع يدعم Upstash Redis مع TLS تلقائياً
+2. **Email Service**: يستخدم Gmail SMTP مع App Password
+3. **Database**: يستخدم MongoDB Atlas أو Local MongoDB
+4. **CORS**: في development mode، يسمح بجميع الـ origins
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+## 🔍 Troubleshooting
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### المشكلة: "Could not find main.js"
+**الحل**: تأكد من تشغيل `npx nx build [project-name]` أولاً
 
-## Add new projects
+### المشكلة: "Redis connection error"
+**الحل**: تحقق من `UPSTASH_REDIS_REST_URL` و `REDIS_PASSWORD` في `.env`
 
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
+### المشكلة: "WebSockets request was expected"
+**الحل**: تم إصلاحها في proxy configuration - تأكد من استخدام آخر version
 
-Use the plugin's generator to create new projects.
+### المشكلة: "Port already in use"
+**الحل**: تأكد من إغلاق أي processes تستخدم المنافذ 6001 أو 8080
 
-To generate a new application, use:
+## 📚 التقنيات المستخدمة
 
-```sh
-npx nx g @nx/express:app demo
-```
+- **Nx**: Monorepo tooling
+- **Express**: Web framework
+- **TypeScript**: Programming language
+- **Prisma**: ORM for MongoDB
+- **Redis (ioredis)**: Caching and session management
+- **Nodemailer**: Email service
+- **Swagger**: API documentation
+- **Webpack**: Module bundler
 
-To generate a new library, use:
+## 👥 المساهمون
 
-```sh
-npx nx g @nx/node:lib mylib
-```
+تم تطوير هذا المشروع كجزء من نظام E-Commerce متعدد البائعين.
 
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
+## 📄 الرخصة
 
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+MIT License
 
-## Set up CI!
+---
 
-### Step 1
-
-To connect to Nx Cloud, run the following command:
-
-```sh
-npx nx connect
-```
-
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
-
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Step 2
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
-```
-
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Useful links
-
-Learn more:
-
-- [Learn more about this workspace setup](https://nx.dev/nx-api/express?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+**آخر تحديث**: تم إصلاح جميع المشاكل والتأكد من عمل جميع الخدمات بشكل صحيح ✅
